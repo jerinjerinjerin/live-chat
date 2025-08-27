@@ -37,7 +37,7 @@ export class UserResolver {
 
     context.res.cookie('accessToken', accessToken, {
       httpOnly: true,
-       secure: true, // true in production with HTTPS
+      secure: true, // true in production with HTTPS
       sameSite: 'strict',
       maxAge: 15 * 60 * 1000,
     });
