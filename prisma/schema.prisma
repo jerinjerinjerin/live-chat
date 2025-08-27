@@ -24,6 +24,8 @@ model User {
   lastLoginAt         DateTime?
   lastActivityAt      DateTime?
   failedLoginAttempts Int       @default(0)
+  refreshToken        String?   // ✅ Hashed refresh token
+  refreshTokenExpiry  DateTime? // ✅ Optional: expiry for refresh token
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   deletedAt           DateTime?

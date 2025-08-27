@@ -11,3 +11,15 @@ export class RegisterResponse {
   @Field()
   otpSent: boolean;
 }
+
+@ObjectType()
+export class VerifyOtpResponse {
+  @Field()
+  message: string;
+
+  @Field()
+  accessToken: string;
+
+  @Field()
+  refreshToken: string;
+}

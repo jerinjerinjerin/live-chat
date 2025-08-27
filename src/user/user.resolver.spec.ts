@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserResolver } from './user.resolver';
 import { UserService } from './user.service';
 import { CreateUserInput } from './dto/create-user.input';
-import { RegisterResponse } from './response/register.response';
+import {
+  RegisterResponse,
+  VerifyOtpResponse,
+} from './response/register.response';
 
 describe('UserResolver', () => {
   let resolver: UserResolver;
@@ -16,6 +19,7 @@ describe('UserResolver', () => {
           provide: UserService,
           useValue: {
             registerUser: jest.fn(), // ✅ Clean mock
+            verifyUser: jest.fn(),
           },
         },
       ],
@@ -52,6 +56,63 @@ describe('UserResolver', () => {
         message: 'OTP sent successfully. Please verify your email.',
         email: 'test@example.com',
         otpSent: true,
+      });
+    });
+  });
+
+  describe('verifyUser', () => {
+    it('should call userService.verifyUser and return expected response', async () => {
+      const email = 'test@example.com';
+      const otp = '123456';
+
+      const mockAccessToken = 'mock-access-token';
+      const mockRefreshToken = 'mock-refresh-token';
+
+      (userService.verifyUser as jest.Mock).mockResolvedValueOnce({
+        accessToken: mockAccessToken,
+        refreshToken: mockRefreshToken,
+      });
+
+      const mockCookie = jest.fn();
+
+      const context = {
+        res: {
+          cookie: mockCookie,
+        },
+      };
+
+      const result: VerifyOtpResponse = await resolver.verifyUser(
+        email,
+        otp,
+        context,
+      );
+
+      expect(userService.verifyUser).toHaveBeenCalledWith(otp, email);
+      expect(mockCookie).toHaveBeenCalledTimes(2);
+
+      expect(mockCookie).toHaveBeenCalledWith(
+        'accessToken',
+        mockAccessToken,
+        expect.objectContaining({
+          httpOnly: true,
+          secure: true,
+          sameSite: 'strict',
+        }),
+      );
+      expect(mockCookie).toHaveBeenCalledWith(
+        'refreshToken',
+        mockRefreshToken,
+        expect.objectContaining({
+          httpOnly: true,
+          secure: true,
+          sameSite: 'strict',
+        }),
+      );
+
+      expect(result).toEqual({
+        message: 'User verified successfully',
+        accessToken: mockAccessToken,
+        refreshToken: mockRefreshToken,
       });
     });
   });

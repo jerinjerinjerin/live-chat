@@ -19,6 +19,7 @@ import { PrismaModule } from './prisma/prisma.module';
       autoSchemaFile: true,
       sortSchema: true,
       playground: true,
+      context: ({ req, res }) => ({ req, res }),
     }),
     PrismaModule,
   ],
