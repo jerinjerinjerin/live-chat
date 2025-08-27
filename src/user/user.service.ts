@@ -11,15 +11,24 @@ import * as bcrypt from 'bcryptjs';
 import Redis from 'ioredis';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { OAuth2Client } from 'google-auth-library';
+import { TokenService } from 'src/utils/token.service';
+import { LoginResponse } from './response/register.response';
 
 @Injectable()
 export class UserService {
+  private googleClient: OAuth2Client;
   constructor(
     private readonly prisma: PrismaService,
     @InjectRedis() private readonly redis: Redis,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+    private readonly tokenService: TokenService,
+  ) {
+    this.googleClient = new OAuth2Client(
+      this.configService.get('GOOGLE_CLIENT_ID'),
+    );
+  }
 
   async registerUser(data: CreateUserInput): Promise<string> {
     const exists = await this.prisma.user.findUnique({
@@ -120,12 +129,29 @@ export class UserService {
       data: {
         refreshToken: await bcrypt.hash(refreshToken, 10),
         refreshTokenExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        isEmailVerified: true,
       },
     });
 
     return {
       accessToken,
       refreshToken,
+    };
+  }
+
+  async loginUser(email: string, password: string): Promise<LoginResponse> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) throw new UnauthorizedException('Invalid credentials');
+
+    const passwordValid = await bcrypt.compare(password, user.password);
+    if (!passwordValid) throw new UnauthorizedException('Invalid credentials');
+
+    const tokens = this.tokenService.generateTokens(user.id, user.email);
+
+    return {
+      message: 'Login successful',
+      accessToken: (await tokens).accessToken,
+      refreshToken: (await tokens).refreshToken,
     };
   }
 }

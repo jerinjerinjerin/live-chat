@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 
 jest.mock('bcryptjs', () => ({
   ...jest.requireActual('bcryptjs'),
+  compare: jest.fn(),
   hash: jest.fn(),
 }));
 
@@ -16,6 +17,7 @@ import {
 import { UserRole } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { TokenService } from 'src/utils/token.service';
 
 describe('userService', () => {
   let service: UserService;
@@ -46,6 +48,10 @@ describe('userService', () => {
     }),
   };
 
+  const tokenServiceMock = {
+    generateTokens: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -57,6 +63,7 @@ describe('userService', () => {
         },
         { provide: JwtService, useValue: jwtMoke },
         { provide: ConfigService, useValue: configMock },
+        { provide: TokenService, useValue: tokenServiceMock },
       ],
     }).compile();
 
@@ -176,12 +183,61 @@ describe('userService', () => {
         data: {
           refreshToken: 'hashedRefreshToken',
           refreshTokenExpiry: expect.any(Date),
+          isEmailVerified: true,
         },
       });
 
       expect(result).toEqual({
         accessToken: 'accessToken',
         refreshToken: 'refreshToken',
+      });
+    });
+  });
+
+  describe('loginUser', () => {
+    const email = 'test@example.com';
+    const password = 'password123';
+
+    it('should throw if user not found', async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.loginUser(email, password)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw if password invalid', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: 1,
+        email,
+        password: 'hashedPassword',
+      });
+
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      await expect(service.loginUser(email, password)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should return tokens on success', async () => {
+      const mockUser = { id: 1, email, password: 'hashedPassword' };
+      prismaMock.user.findUnique.mockResolvedValue(mockUser);
+
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      const tokenServiceMock = service['tokenService'];
+      jest.spyOn(tokenServiceMock, 'generateTokens').mockResolvedValue({
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      });
+
+      const result = await service.loginUser(email, password);
+
+      expect(result).toEqual({
+        message: 'Login successful',
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
       });
     });
   });

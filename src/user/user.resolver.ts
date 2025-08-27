@@ -3,6 +3,7 @@ import { UserService } from './user.service';
 import { User } from './entities/user.entity';
 import { CreateUserInput } from './dto/create-user.input';
 import {
+  LoginResponse,
   RegisterResponse,
   VerifyOtpResponse,
 } from './response/register.response';
@@ -51,6 +52,36 @@ export class UserResolver {
 
     return {
       message: 'User verified successfully',
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  @Mutation(() => LoginResponse)
+  async loginUser(
+    @Args('email') email: string,
+    @Args('password') password: string,
+    @Context() context: any,
+  ): Promise<LoginResponse> {
+    const { accessToken, refreshToken, message } =
+      await this.userService.loginUser(email, password);
+
+    context.res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true, // true in production with HTTPS
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+    });
+
+    context.res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return {
+      message,
       accessToken,
       refreshToken,
     };
