@@ -14,6 +14,7 @@ import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
 import { TokenService } from 'src/utils/token.service';
 import { LoginResponse } from './response/register.response';
+import { User } from './entities/user.entity';
 
 @Injectable()
 export class UserService {
@@ -153,5 +154,24 @@ export class UserService {
       accessToken: (await tokens).accessToken,
       refreshToken: (await tokens).refreshToken,
     };
+  }
+
+  async findById(userId: string): Promise<User> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) throw new UnauthorizedException('User not found');
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatarUrl: user.avatarUrl ?? null,
+      role: user.role,
+      isEmailVerified: user.isEmailVerified,
+      isPaid: user.isPaid,
+      isActive: user.isActive,
+    } as unknown as User;
   }
 }

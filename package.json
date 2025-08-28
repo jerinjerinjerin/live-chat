@@ -21,8 +21,11 @@
     "test:user": "jest --config jest.config.ts --coverage src/user",
     "test:prisma": "jest --config jest.config.ts --coverage src/prisma",
     "test:strategy": "jest --config jest.config.ts --coverage src/user/strategy",
+    "test:response": "jest --config jest.config.ts --coverage src/user/response",
     "format:jest": "prettier --write jest.config.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "lint-staged": "lint-staged",
+    "postinstall": "husky install"
   },
   "lint-staged": {
     "*.{ts,js,json,md}": [
@@ -90,5 +93,10 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn run lint-staged"
+    }
   }
 }
