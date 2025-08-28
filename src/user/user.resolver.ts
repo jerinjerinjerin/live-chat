@@ -1,4 +1,4 @@
-import { Resolver, Mutation, Args, Context } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Context, Query } from '@nestjs/graphql';
 import { UserService } from './user.service';
 import { User } from './entities/user.entity';
 import { CreateUserInput } from './dto/create-user.input';
@@ -7,6 +7,9 @@ import {
   RegisterResponse,
   VerifyOtpResponse,
 } from './response/register.response';
+import { GqlAuthGuard } from 'src/gqlAuthGuard/GqlAuthGuard';
+import { CurrentUser } from 'src/gqlAuthGuard/CurrentUser';
+import { UseGuards } from '@nestjs/common';
 @Resolver(() => User)
 export class UserResolver {
   constructor(private readonly userService: UserService) {}
@@ -38,7 +41,7 @@ export class UserResolver {
 
     context.res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: true, // true in production with HTTPS
+      secure: true,
       sameSite: 'strict',
       maxAge: 15 * 60 * 1000,
     });
@@ -68,7 +71,7 @@ export class UserResolver {
 
     context.res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: true, // true in production with HTTPS
+      secure: true,
       sameSite: 'strict',
       maxAge: 15 * 60 * 1000,
     });
@@ -85,5 +88,13 @@ export class UserResolver {
       accessToken,
       refreshToken,
     };
+  }
+
+  @Query(() => User)
+  @UseGuards(GqlAuthGuard)
+  async me(
+    @CurrentUser() user: { userId: string; email: string },
+  ): Promise<User> {
+    return this.userService.findById(user.userId);
   }
 }

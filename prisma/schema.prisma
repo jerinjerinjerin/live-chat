@@ -30,6 +30,12 @@ model User {
   updatedAt           DateTime  @updatedAt
   deletedAt           DateTime?
 
+   // ✅ Relations for Chat System
+  chatsCreated        Chat[]        @relation("CreatedChats") // Chats the user created
+  chatMemberships     ChatMember[]  // Chats the user is part of
+  messagesSent        Message[]     // Messages sent by this user
+  readReceipts        ReadReceipt[] // Messages read by this user
+
   @@index([email])
   @@index([isActive])
 }
@@ -39,3 +45,78 @@ enum UserRole {
   ADMIN
   MODERATOR
 }
+
+model Chat {
+  id            String       @id @default(uuid())
+  name          String?      
+  isGroup       Boolean      @default(false)
+  createdById   String
+  createdBy     User         @relation("CreatedChats", fields: [createdById], references: [id], onDelete: Cascade)
+  participants  ChatMember[]
+  messages      Message[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+}
+
+model ChatMember {
+  id         String   @id @default(uuid())
+  chatId     String
+  userId     String
+  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt   DateTime @default(now())
+  lastReadAt DateTime?
+  role       ChatRole @default(MEMBER)
+
+  @@unique([chatId, userId])
+}
+
+model Message {
+  id          String        @id @default(uuid())
+  chatId      String
+  senderId    String
+  content     String?
+  messageType MessageType   @default(TEXT)
+  attachments Attachment[]
+  chat        Chat          @relation(fields: [chatId], references: [id])
+  sender      User          @relation(fields: [senderId], references: [id])
+  readReceipts ReadReceipt[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  messageId String
+  url       String
+  fileType  String
+  message   Message  @relation(fields: [messageId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model ReadReceipt {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  message   Message  @relation(fields: [messageId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  readAt    DateTime @default(now())
+
+  @@unique([messageId, userId])
+}
+
+enum ChatRole {
+  MEMBER
+  ADMIN
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  FILE
+  AUDIO
+}
+
