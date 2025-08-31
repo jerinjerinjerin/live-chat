@@ -23,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           return null;
         },
       ]),
-      ignoreExpiration: false, // ✅ Reject expired tokens
+      ignoreExpiration: false,
       secretOrKey:
         configService.get<string>('JWT_ACCESS_TOKEN_SECRET') ||
         'default-secret',
@@ -31,7 +31,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    // ✅ This will attach to `req.user`
     return { userId: payload.sub, email: payload.email };
   }
 }

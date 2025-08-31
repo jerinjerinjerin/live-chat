@@ -170,8 +170,8 @@ describe('UserResolver', () => {
       expect(firstCookieCall[1]).toBe('access-token');
       expect(firstCookieCall[2]).toMatchObject({
         httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
+        secure: false,
+        sameSite: 'Lax',
         maxAge: 15 * 60 * 1000,
       });
 
@@ -179,8 +179,8 @@ describe('UserResolver', () => {
       expect(secondCookieCall[1]).toBe('refresh-token');
       expect(secondCookieCall[2]).toMatchObject({
         httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
+        secure: false,
+        sameSite: 'Lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 

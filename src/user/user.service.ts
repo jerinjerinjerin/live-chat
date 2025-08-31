@@ -174,4 +174,65 @@ export class UserService {
       isActive: user.isActive,
     } as unknown as User;
   }
+
+  async refreshTokens(refreshToken: string) {
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET'),
+      });
+
+      if (!payload || !payload.sub) {
+        throw new UnauthorizedException('Invalid token payload');
+      }
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      // Here, compare the hashed refresh token stored in the database
+      if (!user.refreshToken) {
+        throw new UnauthorizedException('No refresh token found for user');
+      }
+      const refreshTokenHash = await bcrypt.compare(
+        refreshToken,
+        user.refreshToken,
+      );
+
+      if (!refreshTokenHash) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
+      const accessToken = this.jwtService.sign(
+        { sub: user.id, email: user.email },
+        {
+          secret: this.configService.get<string>('JWT_ACCESS_TOKEN_SECRET'),
+          expiresIn:
+            this.configService.get<string>('JWT_ACCESS_TOKEN_EXPIRES_IN') ||
+            '15m',
+        },
+      );
+
+      const newRefreshToken = this.jwtService.sign(
+        { sub: user.id, email: user.email },
+        {
+          secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET'),
+          expiresIn:
+            this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRES_IN') ||
+            '7d',
+        },
+      );
+
+      return {
+        accessToken,
+        refreshToken: newRefreshToken,
+        message: 'Tokens refreshed successfully',
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+  }
 }
