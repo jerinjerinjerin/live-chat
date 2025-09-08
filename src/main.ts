@@ -13,6 +13,8 @@ async function bootstrap() {
     }),
   );
 
+  // hii i am jerin
+
   app.enableCors({
     origin: 'http://localhost:3000', // Apollo Playground URL (Frontend)
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
