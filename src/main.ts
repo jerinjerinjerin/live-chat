@@ -27,4 +27,7 @@ async function bootstrap() {
   // test for dev origin
 }
 
+// live
+// http://98.81.2.38:3000/graphql
+
 bootstrap();
